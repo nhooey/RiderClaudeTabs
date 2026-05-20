@@ -143,12 +143,24 @@ $marker
 
     private fun deployResource(path: String, target: File) {
         try {
-            javaClass.classLoader.getResourceAsStream(path)?.let {
+            javaClass.classLoader.getResourceAsStream(path)?.use { stream ->
                 target.parentFile?.mkdirs()
-                target.writeBytes(it.readBytes())
+                target.writeBytes(normalizeIfText(path, stream.readBytes()))
             }
         } catch (e: Exception) {
             LOG.debug("[ClaudeTabs] Deploy resource failed: $path — ${e.message}")
         }
     }
+
+    // Bash chokes on CRLF in #!/bin/bash scripts: every \r becomes a syntax error
+    // before the script runs. Source files are already LF (pinned by .gitattributes),
+    // but a future processResources filter or repackaging step could reintroduce CRLF —
+    // normalize at extraction time as defense in depth.
+    internal fun normalizeIfText(path: String, content: ByteArray): ByteArray {
+        val ext = path.substringAfterLast('.', "").lowercase()
+        if (ext !in TEXT_EXTENSIONS) return content
+        return String(content, Charsets.UTF_8).replace("\r\n", "\n").toByteArray(Charsets.UTF_8)
+    }
+
+    private val TEXT_EXTENSIONS = setOf("sh", "md", "json", "txt")
 }
