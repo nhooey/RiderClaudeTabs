@@ -198,7 +198,7 @@ class ClaudeTabWatcherStartup : StartupActivity.DumbAware {
         TABS_DIR.mkdirs()
         maybeWriteConfigTemplate()
         loadConfig()
-        deployClaudeIntegration()
+        ClaudeIntegrationDeployer.deploy(CLAUDE_HOME, CLAUDE_MD_MARKER, PERMISSION_ENTRY)
 
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
         Disposer.register(project as Disposable, Disposable {
@@ -1193,137 +1193,6 @@ class ClaudeTabWatcherStartup : StartupActivity.DumbAware {
             findClaudeRec(c)?.let { return it }
         }
         return null
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // AUTO-DEPLOY
-    // ══════════════════════════════════════════════════════════════
-
-    // CLAUDE_MD_MARKER and PERMISSION_ENTRY are in the companion object
-
-    /**
-     * Installs (and updates) the plugin's bash integration into the user's `~/.claude/` directory.
-     * Safe to call on every startup — it's idempotent:
-     *  - Files are overwritten from JAR resources (so script updates ship with plugin updates).
-     *  - CLAUDE.md section is replaced between its markers (so instruction text stays current).
-     *  - Permissions & hooks are only added if missing.
-     *  - Old-named command files (pre-rename) are cleaned up.
-     *
-     * The complementary [uninstall] method lives in the companion object.
-     */
-    private fun deployClaudeIntegration() {
-        try {
-            deployResource("claude-integration/rename-tab.sh", File(CLAUDE_HOME, "rider-plugin/rename-tab.sh"))
-            deployResource("claude-integration/session-start-hook.sh", File(CLAUDE_HOME, "rider-plugin/session-start-hook.sh"))
-            File(CLAUDE_HOME, "commands").mkdirs()
-            deployResource("claude-integration/tab.md", File(CLAUDE_HOME, "commands/tab.md"))
-            deployResource("claude-integration/tabs-clear.md", File(CLAUDE_HOME, "commands/tabs-clear.md"))
-            deployResource("claude-integration/tabs-restore.md", File(CLAUDE_HOME, "commands/tabs-restore.md"))
-            deployResource("claude-integration/tabs-history.md", File(CLAUDE_HOME, "commands/tabs-history.md"))
-            deployResource("claude-integration/tabs-backup.md", File(CLAUDE_HOME, "commands/tabs-backup.md"))
-            deployResource("claude-integration/tabs-status.md", File(CLAUDE_HOME, "commands/tabs-status.md"))
-            // Cleanup old command filenames (pre-rename)
-            File(CLAUDE_HOME, "commands/clear-tabs.md").delete()
-            File(CLAUDE_HOME, "commands/restore-tabs.md").delete()
-            File(CLAUDE_HOME, "commands/tab-history.md").delete()
-            File(CLAUDE_HOME, "commands/backup-tabs.md").delete()
-
-            val claudeMd = File(CLAUDE_HOME, "CLAUDE.md")
-            val existing = if (claudeMd.exists()) claudeMd.readText() else ""
-            val claudeMdBlock = """
-$CLAUDE_MD_MARKER
-## Terminal Tab Naming (Rider Plugin)
-At the **start of every conversation**, rename your Rider terminal tab by running:
-```bash
-bash ~/.claude/rider-plugin/rename-tab.sh "Short Topic Name"
-```
-
-**Naming priority:**
-1. If the user provides a name — in their first message, via `/tab`, or by saying "name it X", "call this X", "name this X tab" — use their **exact words** as the tab name. "name this left tab" means the name IS "left tab". Never reinterpret the user's words as a description; take them literally as the desired name.
-2. Otherwise, pick a concise name (3-5 words) that describes the conversation's purpose.
-3. Update it if the topic shifts significantly.
-
-This applies to **new chats, resumed chats** (`--resume`), **and `/resume`**. On resume, re-use the previous tab name if the topic hasn't changed.
-$CLAUDE_MD_MARKER
-""".trimStart()
-            if (existing.contains(CLAUDE_MD_MARKER)) {
-                // Replace existing section with latest version
-                val pattern = Regex("$CLAUDE_MD_MARKER.*?$CLAUDE_MD_MARKER", RegexOption.DOT_MATCHES_ALL)
-                val updated = existing.replace(pattern, claudeMdBlock.trim())
-                if (updated != existing) {
-                    claudeMd.writeText(updated)
-                    LOG.info("[ClaudeTabs] Updated CLAUDE.md section")
-                }
-            } else {
-                // First install — append
-                claudeMd.appendText("\n$claudeMdBlock")
-                LOG.info("[ClaudeTabs] Added CLAUDE.md section")
-            }
-
-            addPermission()
-            addSessionStartHook()
-        } catch (e: Exception) { LOG.warn("[ClaudeTabs] Deploy failed: ${e.message}") }
-    }
-
-    private val HOOK_MARKER = "session-start-hook.sh"
-    private val HOOK_MARKER_LEGACY = "active-sessions"
-
-    private fun addSessionStartHook() {
-        val sf = File(CLAUDE_HOME, "settings.json")
-        if (!sf.exists()) return
-        try {
-            val text = sf.readText()
-            if (text.contains(HOOK_MARKER) || text.contains(HOOK_MARKER_LEGACY)) return
-
-            val hookEntry = """
-                      {
-                        "hooks": [
-                          {
-                            "type": "command",
-                            "command": "bash ~/.claude/rider-plugin/session-start-hook.sh",
-                            "timeout": 5
-                          }
-                        ]
-                      }
-            """.trimIndent()
-
-            if (!text.contains("\"hooks\"")) {
-                // No hooks section at all — add the entire block
-                val hookJson = "\"hooks\": {\n    \"SessionStart\": [\n      $hookEntry\n    ]\n  }"
-                sf.writeText(text.trimEnd().removeSuffix("}") + ",\n  $hookJson\n}")
-                LOG.info("[ClaudeTabs] Added hooks section with SessionStart hook")
-            } else if (!text.contains("\"SessionStart\"")) {
-                // Has hooks but no SessionStart — add SessionStart array
-                sf.writeText(text.replace(Regex(""""hooks"\s*:\s*\{"""), "\"hooks\": {\n    \"SessionStart\": [\n      $hookEntry\n    ],"))
-                LOG.info("[ClaudeTabs] Added SessionStart hook to existing hooks")
-            } else {
-                // Has SessionStart but our hook isn't in it — append to the array
-                sf.writeText(text.replace(Regex(""""SessionStart"\s*:\s*\["""), "\"SessionStart\": [\n      $hookEntry,"))
-                LOG.info("[ClaudeTabs] Appended hook to existing SessionStart array")
-            }
-        } catch (e: Exception) {
-            LOG.debug("[ClaudeTabs] Hook install failed: ${e.message}")
-        }
-    }
-
-    private fun addPermission() {
-        val sf = File(CLAUDE_HOME, "settings.json")
-        if (!sf.exists()) return
-        try {
-            val text = sf.readText()
-            if (text.contains(PERMISSION_ENTRY)) return
-            if (text.contains("\"allow\"")) {
-                sf.writeText(text.replace(Regex(""""allow"\s*:\s*\["""), "\"allow\": [\"$PERMISSION_ENTRY\", "))
-            } else if (text.contains("\"permissions\"")) {
-                sf.writeText(text.replace(Regex(""""permissions"\s*:\s*\{"""), "\"permissions\": {\n    \"allow\": [\"$PERMISSION_ENTRY\"],"))
-            } else {
-                sf.writeText(text.trimEnd().removeSuffix("}") + ",\n  \"permissions\": {\n    \"allow\": [\"$PERMISSION_ENTRY\"]\n  }\n}")
-            }
-        } catch (e: Exception) { LOG.debug("[ClaudeTabs] Permission install failed: ${e.message}") }
-    }
-
-    private fun deployResource(path: String, target: File) {
-        try { javaClass.classLoader.getResourceAsStream(path)?.let { target.parentFile?.mkdirs(); target.writeBytes(it.readBytes()) } } catch (e: Exception) { LOG.debug("[ClaudeTabs] Deploy resource failed: $path — ${e.message}") }
     }
 
     // ══════════════════════════════════════════════════════════════

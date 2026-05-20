@@ -1,0 +1,20 @@
+# Normalize line endings so a Windows contributor's core.autocrlf=true cannot
+# CRLF-ify scripts that get extracted from the JAR at runtime — /bin/bash on
+# macOS/Linux chokes on embedded \r.
+*.sh         text eol=lf
+*.bash       text eol=lf
+
+# Default everything else to LF on checkout regardless of platform. Explicit
+# overrides above still win.
+* text=auto eol=lf
+
+# Windows-only files keep CRLF.
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+
+# Treat known binary types as binary so git doesn't try to convert them.
+*.png        binary
+*.svg        text
+*.jar        binary
+*.zip        binary
+*.ico        binary

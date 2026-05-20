@@ -32,6 +32,15 @@ dependencies {
     testImplementation("com.intellij.remoterobot:remote-fixtures:0.11.23")
 }
 
+// IntelliJ Platform 2024.3 requires JVM target 17. Pin Java compile target so
+// compileJava and compileKotlin agree regardless of the host JDK (any 17+ JDK
+// can produce class-file 17 bytecode — we don't force a specific install via
+// `toolchain`).
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 tasks {
     patchPluginXml {
         sinceBuild.set("243")
