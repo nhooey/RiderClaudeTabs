@@ -1,5 +1,7 @@
 # Claude Terminal Tab Namer
 
+[![built with garnix](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fnhooey%2FRiderClaudeTabs)](https://garnix.io/repo/nhooey/RiderClaudeTabs)
+
 A JetBrains Rider / IntelliJ plugin that names terminal tabs to match the [Claude Code](https://claude.com/claude-code) conversation running inside them.
 
 ## What it does
