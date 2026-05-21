@@ -1,14 +1,6 @@
 # Gradle
-build/
-.gradle/
-
-# IDE
-.idea/
-*.iml
-
-# OS
-Thumbs.db
-.DS_Store
+/build/
+/.gradle/
 
 # Nix
 /result
