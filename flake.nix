@@ -53,17 +53,15 @@
         # The wrapper script then bakes `JAVA_HOME = ${java}` into the gradle binary.
         gradle = pkgs.gradle_8.override {java = jdk;};
 
-        # Garnix Action body: compiles main + test sources and builds the
-        # distributable plugin ZIP. Needs network for Gradle 8.5 + IntelliJ
+        # Compiles main + test sources and builds the distributable plugin
+        # ZIP. Needs network for Gradle 8.5 + IntelliJ
         # Platform SDK 2024.3 downloads, so it can't be a sandbox check.
         #
         # Why no `./gradlew test`: gradle-intellij-plugin 1.x downloads the
         # JetBrains Runtime (JBR) to run the test JVM. JBR is a vanilla ELF
         # binary expecting /lib64/ld-linux-x86-64.so.2 + glibc at FHS paths,
-        # which NixOS-based Garnix runners lack. `buildFHSEnv` would normally
-        # paper over this, but Garnix Actions disallow nested user namespaces
-        # (`bwrap: Creating new namespace failed: Operation not permitted`),
-        # so the FHS chroot can't enter. `compileTestKotlin` still validates
+        # which NixOS lacks, and `buildFHSEnv` needs nested user namespaces
+        # that sandboxed runners often refuse. `compileTestKotlin` still validates
         # that test sources type-check; full test execution stays in the dev
         # shell (`test-unit` command).
         gradleCheckApp = pkgs.writeShellApplication {
