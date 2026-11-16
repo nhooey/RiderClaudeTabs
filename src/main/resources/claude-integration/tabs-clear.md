@@ -1,3 +1,8 @@
+---
+allowed-tools:
+  - 'Bash(node ~/.claude/rider-plugin/current-project.js)'
+---
+
 Clear the Rider tab plugin's restore cache for **the current project** (or all projects with `--all`).
 
 This removes the project's `restore-<hash>.json` and any per-project snapshots so the next save starts clean. It does **not** touch `history.json` (history is meant to persist across clears so you can still resume past sessions).

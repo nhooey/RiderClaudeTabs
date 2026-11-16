@@ -1,3 +1,8 @@
+---
+allowed-tools:
+  - 'Bash(node ~/.claude/rider-plugin/current-project.js)'
+---
+
 Browse past Claude Code sessions saved by the Rider plugin and resume one.
 
 **Do NOT shell out to Node here.** Read the JSON yourself and present a clean choice menu — the user has explicitly asked for minimal terminal noise.
