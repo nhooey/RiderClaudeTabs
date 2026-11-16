@@ -1,3 +1,8 @@
+---
+allowed-tools:
+  - 'Bash(node ~/.claude/rider-plugin/current-project.js)'
+---
+
 Show a status report of currently-active Claude Code sessions tracked by the Rider plugin.
 
 **Do NOT shell out to Node here** (except the one-shot project-resolver helper below). Read the JSON yourself — the user has explicitly asked for minimal terminal noise.

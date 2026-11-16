@@ -1,3 +1,8 @@
+---
+allowed-tools:
+  - 'Bash(node ~/.claude/rider-plugin/current-project.js)'
+---
+
 List saved Claude sessions from the Rider plugin's restore files and print a resume command for one of them.
 
 **Do NOT shell out to Node here** (except the one-shot project-resolver helper below). Read the JSON yourself and present a clean choice menu — the user has explicitly asked for minimal terminal noise.

@@ -1,3 +1,10 @@
+---
+allowed-tools:
+  - 'Bash(node ~/.claude/rider-plugin/current-project.js)'
+  - 'Bash(node ~/.claude/rider-plugin/backup-active.js)'
+  - 'Bash(node ~/.claude/rider-plugin/backup-active.js *)'
+---
+
 Manually snapshot currently-active Claude sessions for **the current project** into history.json so they appear in /tabs-history.
 
 Useful when you want to checkpoint your sessions without closing Rider or waiting for tabs to close naturally.
