@@ -15,7 +15,7 @@
 
 NAME="$1"
 if [ -z "$NAME" ]; then
-  echo "Usage: bash ~/.claude/rider-plugin/tab.sh \"Tab Name\""
+  echo 'Usage: bash ~/.claude/rider-plugin/tab.sh "Tab Name"'
   exit 1
 fi
 

@@ -24,7 +24,7 @@
 
 NAME="$1"
 if [ -z "$NAME" ]; then
-  echo "Usage: bash ~/.claude/rider-plugin/rename-tab.sh \"Tab Name\""
+  echo 'Usage: bash ~/.claude/rider-plugin/rename-tab.sh "Tab Name"'
   exit 1
 fi
 
@@ -37,12 +37,12 @@ mkdir -p "$TABS_DIR"
 is_pid_alive() {
   local pid="$1"
   case "$(uname -s 2>/dev/null)" in
-    MINGW*|MSYS*|CYGWIN*)
-      tasklist //FI "PID eq $pid" 2>/dev/null | grep -q "$pid"
-      ;;
-    *)
-      kill -0 "$pid" 2>/dev/null
-      ;;
+  MINGW* | MSYS* | CYGWIN*)
+    tasklist //FI "PID eq $pid" 2>/dev/null | grep -q "$pid"
+    ;;
+  *)
+    kill -0 "$pid" 2>/dev/null
+    ;;
   esac
 }
 
@@ -54,7 +54,7 @@ TERM_SID="${TERM_SESSION_ID}"
 if [ -n "$TERM_SID" ] && [ -f "$MAP_DIR/$TERM_SID" ]; then
   sid=$(cat "$MAP_DIR/$TERM_SID")
   if [ -n "$sid" ]; then
-    echo "{\"name\":\"$NAME\"}" > "$TABS_DIR/$sid.json"
+    echo "{\"name\":\"$NAME\"}" >"$TABS_DIR/$sid.json"
     exit 0
   fi
 fi
@@ -74,13 +74,13 @@ norm_cwd=$(echo "$CWD_WIN" | sed 's|\\|/|g')
 # Cache the live-PID set once. ALIVE_PIDS contains a newline-separated
 # list of PIDs; `is_pid_alive_cached` greps that instead of forking.
 case "$(uname -s 2>/dev/null)" in
-  MINGW*|MSYS*|CYGWIN*)
-    ALIVE_PIDS=$(tasklist //FO CSV //NH 2>/dev/null | awk -F',' '{gsub(/"/,"",$2); print $2}')
-    ;;
-  *)
-    # ps -A on macOS/Linux is a single fork — much cheaper than per-PID kill -0
-    ALIVE_PIDS=$(ps -A -o pid= 2>/dev/null | tr -d ' ')
-    ;;
+MINGW* | MSYS* | CYGWIN*)
+  ALIVE_PIDS=$(tasklist //FO CSV //NH 2>/dev/null | awk -F',' '{gsub(/"/,"",$2); print $2}')
+  ;;
+*)
+  # ps -A on macOS/Linux is a single fork — much cheaper than per-PID kill -0
+  ALIVE_PIDS=$(ps -A -o pid= 2>/dev/null | tr -d ' ')
+  ;;
 esac
 
 is_pid_alive_cached() {
@@ -110,11 +110,11 @@ for sf in "${SESSION_FILES[@]}"; do
   [ -z "$sid" ] && continue
 
   best_sid="$sid"
-  break  # newest match wins (files were sorted by mtime desc)
+  break # newest match wins (files were sorted by mtime desc)
 done
 
 if [ -n "$best_sid" ]; then
-  echo "{\"name\":\"$NAME\"}" > "$TABS_DIR/$best_sid.json"
+  echo "{\"name\":\"$NAME\"}" >"$TABS_DIR/$best_sid.json"
   exit 0
 fi
 
